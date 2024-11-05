@@ -26,7 +26,13 @@
         }
 
         async function startCamera() {
-            videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            videoStream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 500 },
+                    height: { ideal: 685 },
+                    aspectRatio: 500 / 685
+                }
+            });
             video.srcObject = videoStream;
             video.play();
             requestAnimationFrame(processFrame);
@@ -43,8 +49,8 @@
             const matches = matchFeatures(videoDescriptors, imageDescriptors);
             const matchRate = calculateMatchRate(matches, videoKeypoints.size());
 
-            console.log(`一致率: ${matchRate.toFixed(2)}%`);
-            document.getElementById("message").textContent = `<p>一致率: ${matchRate.toFixed(2)}%</p>`;
+            //console.log(`一致率: ${matchRate.toFixed(2)}%`);
+            document.getElementById("message").textContent = `一致率: ${matchRate.toFixed(2)}%`;
 
             requestAnimationFrame(processFrame);
         }
