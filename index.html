@@ -6,6 +6,7 @@
     <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady();"></script>
 </head>
 <body>
+    <div id="message">一致率: - %</div>
     <video id="video" width="500" height="685" autoplay></video>
     <canvas id="canvas" width="500" height="685" style="display:none;"></canvas>
 
@@ -43,7 +44,7 @@
             const matchRate = calculateMatchRate(matches, videoKeypoints.size());
 
             console.log(`一致率: ${matchRate.toFixed(2)}%`);
-            document.body.insertAdjacentHTML('beforeend', `<p>一致率: ${matchRate.toFixed(2)}%</p>`);
+            document.getElementById("message").textContent = `<p>一致率: ${matchRate.toFixed(2)}%</p>`;
 
             requestAnimationFrame(processFrame);
         }
