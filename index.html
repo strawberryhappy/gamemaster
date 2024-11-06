@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>OpenCV Matching</title>
+    <title>ヒストグラムによる画像一致判定</title>
     <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady();"></script>
 </head>
 <body>
@@ -22,17 +22,11 @@
 
         function onOpenCvReady() {
             console.log("OpenCV.js is ready.");
-            startCamera(); // OpenCVの準備が整ったらカメラを開始
+            startCamera();
         }
 
         async function startCamera() {
-            videoStream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    width: { ideal: 500 },
-                    height: { ideal: 685 },
-                    aspectRatio: 500 / 685
-                }
-            });
+            videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
             video.srcObject = videoStream;
             video.play();
             requestAnimationFrame(processFrame);
@@ -43,54 +37,55 @@
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             const frameData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-            const { keypoints: videoKeypoints, descriptors: videoDescriptors } = extractFeatures(frameData);
-            const { keypoints: imageKeypoints, descriptors: imageDescriptors } = await extractImageFeatures(targetImage);
+            // ターゲット画像のヒストグラムを取得
+            const targetHist = await calculateHistogram(targetImage);
 
-            const matches = matchFeatures(videoDescriptors, imageDescriptors);
-            const matchRate = calculateMatchRate(matches, videoKeypoints.size());
+            // 現在のフレームのヒストグラムを取得
+            const frameHist = calculateHistogramFromImageData(frameData);
 
-            //console.log(`一致率: ${matchRate.toFixed(2)}%`);
-            document.getElementById("message").textContent = `一致率: ${matchRate.toFixed(2)}%`;
+            // ヒストグラムの一致率を計算
+            const matchRate = compareHistograms(frameHist, targetHist);
+            document.getElementById("message").textContent = `一致率: ${(matchRate * 100).toFixed(2)}%`;
 
             requestAnimationFrame(processFrame);
         }
 
-        function extractFeatures(image) {
-            const src = cv.matFromImageData(image);
-            const gray = new cv.Mat();
-            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-
-            const orb = new cv.ORB();
-            const keypoints = new cv.KeyPointVector();
-            const descriptors = new cv.Mat();
-            orb.detect(gray, keypoints);
-            orb.compute(gray, keypoints, descriptors);
-
-            src.delete();
-            gray.delete();
-
-            return { keypoints, descriptors };
-        }
-
-        async function extractImageFeatures(image) {
+        async function calculateHistogram(image) {
+            await new Promise(resolve => {
+                image.onload = resolve;
+            });
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = image.width;
             canvas.height = image.height;
             ctx.drawImage(image, 0, 0);
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            return extractFeatures(imageData);
+            return calculateHistogramFromImageData(imageData);
         }
 
-        function matchFeatures(descriptors1, descriptors2) {
-            const matcher = new cv.BFMatcher(cv.NORM_HAMMING, true);
-            const matches = new cv.DMatchVector();
-            matcher.match(descriptors1, descriptors2, matches);
-            return matches;
+        function calculateHistogramFromImageData(imageData) {
+            const src = cv.matFromImageData(imageData);
+            const hsv = new cv.Mat();
+            cv.cvtColor(src, hsv, cv.COLOR_RGBA2HSV);
+
+            // ヒストグラムの計算 (Hue チャンネルを使用)
+            const histSize = [50]; // ビンの数
+            const ranges = [0, 180]; // Hueの範囲
+            const channels = [0]; // Hue チャンネルのみ使用
+
+            const hist = new cv.Mat();
+            cv.calcHist(hsv, channels, new cv.Mat(), hist, histSize, ranges);
+
+            cv.normalize(hist, hist, 0, 1, cv.NORM_MINMAX);
+            src.delete();
+            hsv.delete();
+            return hist;
         }
 
-        function calculateMatchRate(matches, totalKeypoints) {
-            return (matches.size() / totalKeypoints) * 100;
+        function compareHistograms(hist1, hist2) {
+            // ヒストグラムの比較 (コサイン類似度)
+            const score = cv.compareHist(hist1, hist2, cv.HISTCMP_CORREL);
+            return score;
         }
     </script>
 </body>
