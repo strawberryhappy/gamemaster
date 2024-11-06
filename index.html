@@ -26,7 +26,13 @@
         }
 
         async function startCamera() {
-            videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            videoStream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 500 },
+                    height: { ideal: 685 },
+                    aspectRatio: 500 / 685
+                }
+            });
             video.srcObject = videoStream;
             video.play();
             requestAnimationFrame(processFrame);
