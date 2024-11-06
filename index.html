@@ -10,12 +10,16 @@
     <h1>カメラ映像と画像の特徴点マッチング</h1>
     <video id="video" autoplay></video>
     <canvas id="canvas" style="display: none;"></canvas>
+    
+    <!-- 結果表示用の要素 -->
+    <div id="matchRatio">一致割合: 0%</div>
 
     <script>
         // 特徴点の抽出を行うメイン関数
         async function main() {
             const video = document.getElementById('video');
             const canvas = document.getElementById('canvas');
+            const matchRatioElement = document.getElementById('matchRatio');
             
             // 比較画像の特徴点を抽出する関数
             function extractFeaturesFromImage(imagePath, callback) {
@@ -65,7 +69,12 @@
                     const matches = new cv.DMatchVector();
                     bf.match(descriptors, referenceDescriptors, matches);
 
-                    console.log(`一致した特徴点の数: ${matches.size()}`);
+                    const totalKeypoints = keypoints.size();
+                    const matchedKeypoints = matches.size();
+                    const matchRatio = (matchedKeypoints / totalKeypoints) * 100;
+
+                    // 一致割合を表示
+                    matchRatioElement.textContent = `一致割合: ${matchRatio.toFixed(2)}%`;
 
                     matches.delete();
                     bf.delete();
