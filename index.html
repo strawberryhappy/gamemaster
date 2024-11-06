@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ヒストグラムによる画像一致判定</title>
+    <title>ヒストグラム比較</title>
     <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady();"></script>
 </head>
 <body>
@@ -20,11 +20,13 @@
 
         let videoStream;
 
+        // OpenCV.jsが読み込まれたらカメラ開始
         function onOpenCvReady() {
             console.log("OpenCV.js is ready.");
             startCamera();
         }
 
+        // カメラ映像の取得とフレーム処理
         async function startCamera() {
             videoStream = await navigator.mediaDevices.getUserMedia({
                 video: {
@@ -35,60 +37,71 @@
             });
             video.srcObject = videoStream;
             video.play();
-            requestAnimationFrame(processFrame);
+
+            // targetImageがロードされてからフレーム処理を開始
+            targetImage.onload = () => {
+                console.log("Target image loaded.");
+                requestAnimationFrame(processFrame);
+            };
         }
 
         async function processFrame() {
             if (video.paused || video.ended) return;
+
+            // フレームを描画してヒストグラムを取得
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             const frameData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const videoHist = calculateHistogramFromImageData(frameData);
 
-            // ターゲット画像のヒストグラムを取得
             const targetHist = await calculateHistogram(targetImage);
+            if (targetHist === null) {
+                console.error("Failed to calculate histogram for the target image.");
+                return;
+            }
 
-            // 現在のフレームのヒストグラムを取得
-            const frameHist = calculateHistogramFromImageData(frameData);
-
-            // ヒストグラムの一致率を計算
-            const matchRate = compareHistograms(frameHist, targetHist);
-            document.getElementById("message").textContent = `一致率: ${(matchRate * 100).toFixed(2)}%`;
+            // ヒストグラムの類似度を比較
+            const similarity = compareHistograms(videoHist, targetHist);
+            document.getElementById("message").textContent = `一致率: ${(similarity * 100).toFixed(2)}%`;
 
             requestAnimationFrame(processFrame);
         }
 
-        async function calculateHistogram(image) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = image.width;
-            canvas.height = image.height;
-            ctx.drawImage(image, 0, 0);
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            return calculateHistogramFromImageData(imageData);
-        }
-
+        // 画像データからヒストグラムを計算
         function calculateHistogramFromImageData(imageData) {
             const src = cv.matFromImageData(imageData);
             const hsv = new cv.Mat();
             cv.cvtColor(src, hsv, cv.COLOR_RGBA2HSV);
 
-            // ヒストグラムの計算 (Hue チャンネルを使用)
-            const histSize = [50]; // ビンの数
-            const ranges = [0, 180]; // Hueの範囲
-            const channels = [0]; // Hue チャンネルのみ使用
+            const histSize = [50];
+            const ranges = [0, 180];
+            const channels = [0];
 
             const hist = new cv.Mat();
             cv.calcHist(hsv, channels, new cv.Mat(), hist, histSize, ranges);
-
             cv.normalize(hist, hist, 0, 1, cv.NORM_MINMAX);
+
             src.delete();
             hsv.delete();
             return hist;
         }
 
+        async function calculateHistogram(image) {
+            await new Promise(resolve => {
+                image.onload = resolve;
+            });
+            const canvas = document.createElement('canvas');
+            canvas.width = image.width;
+            canvas.height = image.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(image, 0, 0);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            return calculateHistogramFromImageData(imageData);
+        }
+
+        // ヒストグラムの類似度を比較
         function compareHistograms(hist1, hist2) {
-            // ヒストグラムの比較 (コサイン類似度)
-            const score = cv.compareHist(hist1, hist2, cv.HISTCMP_CORREL);
-            return score;
+            return cv.compareHist(hist1, hist2, cv.HISTCMP_CORREL);
         }
     </script>
 </body>
