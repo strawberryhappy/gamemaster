@@ -12,50 +12,92 @@
     <canvas id="canvas" style="display: none;"></canvas>
     
     <!-- 結果表示用の要素 -->
-    <div id="matchRatio">一致割合: 0%</div>
+    <div>
+        <div>市民: <span id="citizen">- %</span></div>
+        <div>人狼: <span id="werewolf">- %</span></div>
+    </div>
 
     <script>
-        // 特徴点の抽出を行うメイン関数
-        async function main() {
-            const video = document.getElementById('video');
-            const canvas = document.getElementById('canvas');
-            const matchRatioElement = document.getElementById('matchRatio');
+        class gamemaster {
+            constructor(paths){
+                this.video = document.getElementById("video");
+                this.canvas = document.getElementById("canvas");
+
+                this.intervalID;
             
-            // 比較画像の特徴点を抽出する関数
-            function extractFeaturesFromImage(imagePath, callback) {
-                const img = new Image();
-                img.src = imagePath;
-                img.onload = () => {
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0);
-
-                    const src = cv.imread(canvas);
-                    const gray = new cv.Mat();
-                    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
-
-                    const orb = new cv.ORB();
-                    const keypoints = new cv.KeyPointVector();
-                    const descriptors = new cv.Mat();
-                    orb.detectAndCompute(gray, new cv.Mat(), keypoints, descriptors);
-
-                    callback({ keypoints, descriptors });
-
-                    src.delete();
-                    gray.delete();
-                    orb.delete();
-                };
+                this.images = [];
+                this.features = {};
+                
+                this.addFeatures(paths || ["citizen.png"]);
             }
 
-            // カメラフレームの特徴点を抽出し、比較画像の特徴点とマッチング
-            function matchFeaturesWithCameraFrame(referenceDescriptors) {
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            addFeatures(imagePaths) {
+                // 画像の読み込みプロミスを格納する配列
+                const loadPromises = imagePaths.map(path => {
+                    return new Promise(resolve => {
+                        const img = new Image();
+                        img.src = path;
+            
+                        img.onload = () => {
+                            this.canvas.width = img.width;
+                            this.canvas.height = img.height;
+                            const ctx = this.canvas.getContext("2d");
+                            ctx.drawImage(img, 0, 0);
+            
+                            const src = cv.imread(this.canvas);
+                            const gray = new cv.Mat();
+                            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+            
+                            const orb = new cv.ORB();
+                            const keypoints = new cv.KeyPointVector();
+                            const descriptors = new cv.Mat();
+                            orb.detectAndCompute(gray, new cv.Mat(), keypoints, descriptors);
+            
+                            // 特徴点を `img.src` をキーとして格納
+                            this.features[img.src] = { keypoints, descriptors };
+            
+                            src.delete();
+                            gray.delete();
+                            orb.delete();
+                            keypoints.delete();
+                            descriptors.delete();
+            
+                            // `resolve` を呼び出してプロミスを完了
+                            resolve();
+                        };
+                    });
+                });
+            
+                // すべての画像の読み込みが完了したら特定のコードを実行
+                Promise.all(loadPromises).then(() => {
+                    console.log("すべての画像の特徴点抽出が完了しました");
+                    navigator.mediaDevices.getUserMedia({
+                        video: {
+                            width: { ideal: 360 },
+                            height: { ideal: 510 },
+                            aspectRatio: 360 / 510
+                        }
+                    }).then(stream => {
+                        this.video.srcObject = stream;
+            
+                        this.video.onloadedmetadata = () => {
+                            this.video.width = this.video.videoWidth;
+                            this.video.height = this.video.videoHeight;
+                            this.intervalID = setInterval(() => this.cameraFeatureComparison(), 1000); // 1秒ごとにマッチングを行う
+                        };
+                    }).catch(err => {
+                        console.error("カメラの起動に失敗しました: " + err);
+                    });
+                });
+            }
+            
+            cameraFeatureComparison(){
+                this.canvas.width = this.video.videoWidth;
+                this.canvas.height = this.video.videoHeight;
+                const ctx = this.canvas.getContext("2d");
+                ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
 
-                const src = cv.imread(canvas);
+                const src = cv.imread(this.canvas);
                 const gray = new cv.Mat();
                 cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
 
@@ -64,22 +106,20 @@
                 const descriptors = new cv.Mat();
                 orb.detectAndCompute(gray, new cv.Mat(), keypoints, descriptors);
 
-                if (!descriptors.empty() && !referenceDescriptors.empty()) {
+                for (const path in this.features) {
+                    let feature = this.features[path]
                     const bf = new cv.BFMatcher(cv.NORM_HAMMING, true);
                     const matches = new cv.DMatchVector();
-                    bf.match(descriptors, referenceDescriptors, matches);
+                    bf.match(descriptors, feature.descriptors, matches);
 
                     const totalKeypoints = keypoints.size();
                     const matchedKeypoints = matches.size();
                     const matchRatio = (matchedKeypoints / totalKeypoints) * 100;
 
-                    // 一致割合を表示
-                    matchRatioElement.textContent = `一致割合: ${matchRatio.toFixed(2)}%`;
+                    document.getElementById(path.replace(".png","")).textContent = `${matchRatio.toFixed(2)}%`;
 
                     matches.delete();
                     bf.delete();
-                } else {
-                    console.log("特徴点が検出されませんでした。");
                 }
 
                 src.delete();
@@ -87,37 +127,6 @@
                 orb.delete();
                 keypoints.delete();
                 descriptors.delete();
-            }
-
-            // 比較対象の画像の特徴点を事前に抽出
-            extractFeaturesFromImage("citizen.png", reference => {
-                // カメラ映像を取得し、フレーム準備ができたら特徴点の比較を行う
-                navigator.mediaDevices.getUserMedia({
-                    video: {
-                        width: { ideal: 500 },
-                        height: { ideal: 685 },
-                        aspectRatio: 500 / 685
-                    }
-                }).then(stream => {
-                    video.srcObject = stream;
-
-                    video.onloadedmetadata = () => {
-                        video.width = video.videoWidth;
-                        video.height = video.videoHeight;
-                        setInterval(() => matchFeaturesWithCameraFrame(reference.descriptors), 1000); // 1秒ごとにマッチングを行う
-                    };
-                }).catch(err => {
-                    console.error("カメラの起動に失敗しました: " + err);
-                });
-            });
-        }
-
-        // OpenCV.js のロード完了後にメイン関数を実行
-        function onOpenCvReady() {
-            if (cv.getBuildInformation) {
-                main();
-            } else {
-                console.error("OpenCV.js のロードに失敗しました");
             }
         }
     </script>
