@@ -60,7 +60,6 @@
                             cv.imshow("_" + path.replace(".png",""),src)
 
                             src.delete();
-                            gray.delete();
                             orb.delete();
                             keypoints.delete();
                             //descriptors.delete(); ここで開放するとbf.matchができない
@@ -130,7 +129,6 @@
 
                 // 必要なくなったオブジェクトの削除
                 src.delete();  // 読み込んだ画像
-                gray.delete();  // グレースケール画像
                 orb.delete();  // ORB オブジェクト
                 keypoints.delete();  // キーポイント
                 descriptors.delete();  // 特徴量
