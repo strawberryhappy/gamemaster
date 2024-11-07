@@ -34,28 +34,30 @@
 
             addFeatures(imagePaths) {
                 // 画像の読み込みプロミスを格納する配列
-                const loadPromises = imagePaths.map(path => {
+                let loadPromises = imagePaths.map(path => {
                     return new Promise(resolve => {
                         this.images.push(path);
 
-                        const img = new Image();
+                        let img = new Image();
                         img.src = path;
             
                         img.onload = () => {
                             this.canvas.width = img.width;
                             this.canvas.height = img.height;
-                            const ctx = this.canvas.getContext("2d");
+                            let ctx = this.canvas.getContext("2d");
                             ctx.drawImage(img, 0, 0);
             
-                            const src = cv.imread(this.canvas);
-                            const gray = new cv.Mat();
+                            let src = cv.imread(this.canvas);
+                            let gray = new cv.Mat();
                             cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
                             cv.imshow("gray_canvas", gray);
 
-                            const orb = new cv.ORB();
-                            const keypoints = new cv.KeyPointVector();
-                            const descriptors = new cv.Mat();
-                            orb.detectAndCompute(gray, new cv.Mat(), keypoints, descriptors);
+                            src = cv.imread("gray_canvas");
+
+                            let orb = new cv.ORB();
+                            let keypoints = new cv.KeyPointVector();
+                            let descriptors = new cv.Mat();
+                            orb.detectAndCompute(src, new cv.Mat(), keypoints, descriptors);
             
                             // 特徴点を `img.src` をキーとして格納
                             this.features[path] = { keypoints, descriptors };
@@ -97,31 +99,33 @@
             cameraFeatureComparison() {
                 this.canvas.width = this.video.videoWidth;
                 this.canvas.height = this.video.videoHeight;
-                const ctx = this.canvas.getContext("2d");
+                let ctx = this.canvas.getContext("2d");
                 ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
 
-                const src = cv.imread(this.canvas);  // canvas から画像データを読み込む
-                const gray = new cv.Mat();  // グレースケール画像用
+                let src = cv.imread(this.canvas);  // canvas から画像データを読み込む
+                let gray = new cv.Mat();  // グレースケール画像用
                 cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);  // カラー画像をグレースケールに変換
                 cv.imshow("gray_canvas", gray);
 
-                const orb = new cv.ORB();  // ORB オブジェクトの作成
-                const keypoints = new cv.KeyPointVector();  // キーポイント格納用
-                const descriptors = new cv.Mat();  // 特徴量の格納用
-                orb.detectAndCompute(gray, new cv.Mat(), keypoints, descriptors);  // 特徴点と特徴量を抽出
+                src = cv.imread("gray_canvas");
+
+                let orb = new cv.ORB();  // ORB オブジェクトの作成
+                let keypoints = new cv.KeyPointVector();  // キーポイント格納用
+                let descriptors = new cv.Mat();  // 特徴量の格納用
+                orb.detectAndCompute(src, new cv.Mat(), keypoints, descriptors);  // 特徴点と特徴量を抽出
 
                 // 画像の特徴点とカメラの特徴点をマッチング
-                for (const path in this.features) {
+                for (let path in this.features) {
                     let feature = this.features[path];
-                    const bf = new cv.BFMatcher(cv.NORM_HAMMING, true);  // マッチャー作成
-                    const matches = new cv.DMatchVector();
+                    let bf = new cv.BFMatcher(cv.NORM_HAMMING, true);  // マッチャー作成
+                    let matches = new cv.DMatchVector();
                     
                     // bf.match を呼び出す前に descriptors の解放をしない
                     bf.match(descriptors, feature.descriptors, matches);  // マッチング処理
 
-                    const totalKeypoints = keypoints.size();  // キーポイントの数
-                    const matchedKeypoints = matches.size();  // マッチングされたキーポイント数
-                    const matchRatio = (matchedKeypoints / totalKeypoints) * 100;  // 一致率の計算
+                    let totalKeypoints = keypoints.size();  // キーポイントの数
+                    let matchedKeypoints = matches.size();  // マッチングされたキーポイント数
+                    let matchRatio = (matchedKeypoints / totalKeypoints) * 100;  // 一致率の計算
 
                     // 結果を HTML に表示
                     document.getElementById(path.replace(".png", "")).textContent = `${matchRatio.toFixed(2)}%`;
