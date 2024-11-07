@@ -157,8 +157,11 @@
     const matches = new cv.DMatchVector();
     bf.match(descriptors1, descriptors2, matches);
 
+    let totalKeypoints = keypoints.size();  // キーポイントの数
+    let matchedKeypoints = matches.size();  // マッチングされたキーポイント数
+    let matchRatio = (matchedKeypoints / totalKeypoints) * 100;  // 一致率の計算
     // マッチング結果を出力
-    console.log('マッチング数:', matches.size());
+    console.log('一致率:', matchRatio.toFixed(2));
 
     // メモリの解放
     keypoints1.delete();
