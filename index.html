@@ -62,7 +62,7 @@
                             gray.delete();
                             orb.delete();
                             keypoints.delete();
-                            descriptors.delete();
+                            //descriptors.delete(); ここで開放するとbf.matchができない
             
                             // `resolve` を呼び出してプロミスを完了
                             resolve();
