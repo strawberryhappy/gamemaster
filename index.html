@@ -114,7 +114,7 @@
                     
                     // bf.match を呼び出す前に descriptors の解放をしない
                     bf.match(descriptors, feature.descriptors, matches);  // マッチング処理
-                    matchImagesWithORB(descriptors, feature.descriptors)
+                    matchImagesWithORB(cv.imread(this.canvas), cv.imread("_citizen"))
 
                     let totalKeypoints = keypoints.size();  // キーポイントの数
                     let matchedKeypoints = matches.size();  // マッチングされたキーポイント数
