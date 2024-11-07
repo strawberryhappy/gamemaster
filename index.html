@@ -52,7 +52,7 @@
                             const orb = new cv.ORB();
                             const keypoints = new cv.KeyPointVector();
                             const descriptors = new cv.Mat();
-                            orb.detectAndCompute(gray, new cv.Mat(), keypoints, descriptors);
+                            orb.detectAndCompute(src, new cv.Mat(), keypoints, descriptors);
             
                             // 特徴点を `img.src` をキーとして格納
                             this.features[path] = { keypoints, descriptors };
