@@ -92,49 +92,55 @@
                     });
                 });
             }
-            cameraFeatureComparison() {
-                this.canvas.width = this.video.videoWidth;
-                this.canvas.height = this.video.videoHeight;
-                const ctx = this.canvas.getContext("2d");
-                ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+            cameraFeatureComparison(){
+    this.canvas.width = this.video.videoWidth;
+    this.canvas.height = this.video.videoHeight;
+    const ctx = this.canvas.getContext("2d");
+    ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
 
-                const src = cv.imread(this.canvas);  // canvas から画像データを読み込む
-                const gray = new cv.Mat();  // グレースケール画像用
-                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);  // カラー画像をグレースケールに変換
+    const src = cv.imread(this.canvas);  // canvas から画像データを読み込む
+    const gray = new cv.Mat();  // グレースケール画像用
+    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);  // カラー画像をグレースケールに変換
 
-                const orb = new cv.ORB();  // ORB オブジェクトの作成
-                const keypoints = new cv.KeyPointVector();  // キーポイント格納用
-                const descriptors = new cv.Mat();  // 特徴量の格納用
-                orb.detectAndCompute(gray, new cv.Mat(), keypoints, descriptors);  // 特徴点と特徴量を抽出
+    const orb = new cv.ORB();  // ORB オブジェクトの作成
+    const keypoints = new cv.KeyPointVector();  // キーポイント格納用
+    const descriptors = new cv.Mat();  // 特徴量の格納用
+    orb.detectAndCompute(gray, new cv.Mat(), keypoints, descriptors);  // 特徴点と特徴量を抽出
 
-                // 画像の特徴点とカメラの特徴点をマッチング
-                for (const path in this.features) {
-                    let feature = this.features[path];
-                    const bf = new cv.BFMatcher(cv.NORM_HAMMING, true);  // マッチャー作成
-                    const matches = new cv.DMatchVector();
-                    
-                    // bf.match を呼び出す前に descriptors の解放をしない
-                    bf.match(descriptors, feature.descriptors, matches);  // マッチング処理
+    // 画像の特徴点とカメラの特徴点をマッチング
+    for (const path in this.features) {
+        let feature = this.features[path];
+        const bf = new cv.BFMatcher(cv.NORM_HAMMING, true);  // マッチャー作成
+        const matches = new cv.DMatchVector();
+        
+        // マッチング処理前に、解放されたオブジェクトがないかチェック
+        if (descriptors.empty() || feature.descriptors.empty()) {
+            console.error("Descripors are empty! Check if descriptors were released prematurely.");
+            return;
+        }
+        
+        bf.match(descriptors, feature.descriptors, matches);  // マッチング処理
 
-                    const totalKeypoints = keypoints.size();  // キーポイントの数
-                    const matchedKeypoints = matches.size();  // マッチングされたキーポイント数
-                    const matchRatio = (matchedKeypoints / totalKeypoints) * 100;  // 一致率の計算
+        const totalKeypoints = keypoints.size();  // キーポイントの数
+        const matchedKeypoints = matches.size();  // マッチングされたキーポイント数
+        const matchRatio = (matchedKeypoints / totalKeypoints) * 100;  // 一致率の計算
 
-                    // 結果を HTML に表示
-                    document.getElementById(path.replace(".png", "")).textContent = `${matchRatio.toFixed(2)}%`;
+        // 結果を HTML に表示
+        document.getElementById(path.replace(".png", "")).textContent = `${matchRatio.toFixed(2)}%`;
 
-                    // 使用後にオブジェクトを削除
-                    matches.delete();
-                    bf.delete();
-                }
+        // 使用後にオブジェクトを削除
+        matches.delete();
+        bf.delete();
+    }
 
-                // 必要なくなったオブジェクトの削除
-                src.delete();  // 読み込んだ画像
-                gray.delete();  // グレースケール画像
-                orb.delete();  // ORB オブジェクト
-                keypoints.delete();  // キーポイント
-                descriptors.delete();  // 特徴量
-            }
+    // 必要なくなったオブジェクトの削除
+    src.delete();  // 読み込んだ画像
+    gray.delete();  // グレースケール画像
+    orb.delete();  // ORB オブジェクト
+    keypoints.delete();  // キーポイント
+    descriptors.delete();  // 特徴量
+}
+
 
         }
     </script>
