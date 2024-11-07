@@ -46,14 +46,14 @@
                             const ctx = this.canvas.getContext("2d");
                             ctx.drawImage(img, 0, 0);
             
-                            // const src = cv.imread(this.canvas);
+                            const src = cv.imread(this.canvas);
                             // const gray = new cv.Mat();
                             // cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
             
                             const orb = new cv.ORB();
                             const keypoints = new cv.KeyPointVector();
                             const descriptors = new cv.Mat();
-                            orb.detectAndCompute(gray, new cv.Mat(), keypoints, descriptors);
+                            orb.detectAndCompute(src, new cv.Mat(), keypoints, descriptors);
             
                             // 特徴点を `img.src` をキーとして格納
                             this.features[path] = { keypoints, descriptors };
@@ -98,14 +98,14 @@
                 const ctx = this.canvas.getContext("2d");
                 ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
 
-                // const src = cv.imread(this.canvas);  // canvas から画像データを読み込む
+                const src = cv.imread(this.canvas);  // canvas から画像データを読み込む
                 // const gray = new cv.Mat();  // グレースケール画像用
                 //cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);  // カラー画像をグレースケールに変換
 
                 const orb = new cv.ORB();  // ORB オブジェクトの作成
                 const keypoints = new cv.KeyPointVector();  // キーポイント格納用
                 const descriptors = new cv.Mat();  // 特徴量の格納用
-                orb.detectAndCompute(gray, new cv.Mat(), keypoints, descriptors);  // 特徴点と特徴量を抽出
+                orb.detectAndCompute(src, new cv.Mat(), keypoints, descriptors);  // 特徴点と特徴量を抽出
 
                 // 画像の特徴点とカメラの特徴点をマッチング
                 for (const path in this.features) {
