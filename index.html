@@ -46,7 +46,7 @@
                             const ctx = this.canvas.getContext("2d");
                             ctx.drawImage(img, 0, 0);
             
-                            const src = cv.imread(this.canvas);
+                            let src = cv.imread(this.canvas);
                             src = this.normalizeImage(src, 0.5);
             
                             const orb = new cv.ORB();
@@ -96,7 +96,7 @@
                 const ctx = this.canvas.getContext("2d");
                 ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
 
-                const src = cv.imread(this.canvas);  // canvas から画像データを読み込む
+                let src = cv.imread(this.canvas);  // canvas から画像データを読み込む
                 src = this.normalizeImage(src, 0.5);
     
                 const orb = new cv.ORB();  // ORB オブジェクトの作成
