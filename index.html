@@ -59,9 +59,9 @@
                             this.features[path] = { keypoints, descriptors };
                             cv.imshow("_" + path.replace(".png",""),src)
 
-                            src.delete();
-                            orb.delete();
-                            keypoints.delete();
+                            // src.delete();
+                            // orb.delete();
+                            // keypoints.delete();
                             //descriptors.delete(); ここで開放するとbf.matchができない
             
                             // `resolve` を呼び出してプロミスを完了
