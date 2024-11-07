@@ -137,60 +137,39 @@
         }
 
         function matchImagesWithORB(img1, img2) {
-            // グレースケール変換
-            const gray1 = new cv.Mat();
-            const gray2 = new cv.Mat();
-            cv.cvtColor(img1, gray1, cv.COLOR_RGBA2GRAY, 0);
-            cv.cvtColor(img2, gray2, cv.COLOR_RGBA2GRAY, 0);
+    // ORB特徴検出器の作成
+    const orb = new cv.ORB();
 
-            // ORBを使って特徴点と記述子を検出
-            const orb = new cv.ORB();
-            const keypoints1 = new cv.KeyPointVector();
-            const keypoints2 = new cv.KeyPointVector();
-            const descriptors1 = new cv.Mat();
-            const descriptors2 = new cv.Mat();
+    // 特徴点とデスクリプタのための変数を準備
+    const keypoints1 = new cv.KeyPointVector();
+    const descriptors1 = new cv.Mat();
+    const keypoints2 = new cv.KeyPointVector();
+    const descriptors2 = new cv.Mat();
 
-            orb.detectAndCompute(gray1, new cv.Mat(), keypoints1, descriptors1);
-            orb.detectAndCompute(gray2, new cv.Mat(), keypoints2, descriptors2);
+    // img1から特徴点とデスクリプタを抽出
+    orb.detectAndCompute(img1, new cv.Mat(), keypoints1, descriptors1);
 
-            // FLANNベースのマッチャーを使って特徴点をマッチング
-            const FLANN_INDEX_LSH = 6;
-            const indexParams = new cv.FlannBasedMatcher([FLANN_INDEX_LSH, 20, 10]);
-            const searchParams = new cv.Mat();
+    // img2から特徴点とデスクリプタを抽出
+    orb.detectAndCompute(img2, new cv.Mat(), keypoints2, descriptors2);
 
-            const flann = new cv.FlannBasedMatcher(indexParams, searchParams);
-            const matches = new cv.DMatchVector();
+    // BFMatcherを用いてデスクリプタをマッチング
+    const bf = new cv.BFMatcher(cv.NORM_HAMMING, true);
+    const matches = new cv.DMatchVector();
+    bf.match(descriptors1, descriptors2, matches);
 
-            flann.knnMatch(descriptors1, descriptors2, matches, 2);
+    // マッチング結果を出力
+    console.log('マッチング数:', matches.size());
 
-            // 比率テストで適切なマッチだけを残す
-            const goodMatches = new cv.DMatchVector();
-            for (let i = 0; i < matches.size(); i++) {
-                let match = matches.get(i);
-                if (match.get(0).distance < 0.75 * match.get(1).distance) {
-                    goodMatches.push_back(match.get(0));
-                }
-            }
+    // メモリの解放
+    keypoints1.delete();
+    descriptors1.delete();
+    keypoints2.delete();
+    descriptors2.delete();
+    matches.delete();
+    orb.delete();
+    bf.delete();
+}
 
-            // マッチング結果を描画
-            const outputImg = new cv.Mat();
-            cv.drawMatches(img1, keypoints1, img2, keypoints2, goodMatches, outputImg);
-
-            // 結果を表示
-            cv.imshow('canvasOutput', outputImg);
-
-            // メモリ解放
-            gray1.delete();
-            gray2.delete();
-            orb.delete();
-            keypoints1.delete();
-            keypoints2.delete();
-            descriptors1.delete();
-            descriptors2.delete();
-            matches.delete();
-            goodMatches.delete();
-            outputImg.delete();
-        }
 
     </script>
 </body>
