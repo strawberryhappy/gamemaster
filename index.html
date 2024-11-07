@@ -113,8 +113,7 @@
                     
                     // bf.match を呼び出す前に descriptors の解放をしない
                     bf.match(descriptors, feature.descriptors, matches);  // マッチング処理
-                    matchImagesWithORB(cv.imread(this.canvas), cv.imread("_citizen"))
-
+    
                     let totalKeypoints = keypoints.size();  // キーポイントの数
                     let matchedKeypoints = matches.size();  // マッチングされたキーポイント数
                     let matchRatio = (matchedKeypoints / totalKeypoints) * 100;  // 一致率の計算
@@ -135,43 +134,6 @@
             }
 
         }
-
-        function matchImagesWithORB(img1, img2) {
-    // ORB特徴検出器の作成
-    const orb = new cv.ORB();
-
-    // 特徴点とデスクリプタのための変数を準備
-    const keypoints1 = new cv.KeyPointVector();
-    const descriptors1 = new cv.Mat();
-    const keypoints2 = new cv.KeyPointVector();
-    const descriptors2 = new cv.Mat();
-
-    // img1から特徴点とデスクリプタを抽出
-    orb.detectAndCompute(img1, new cv.Mat(), keypoints1, descriptors1);
-
-    // img2から特徴点とデスクリプタを抽出
-    orb.detectAndCompute(img2, new cv.Mat(), keypoints2, descriptors2);
-
-    // BFMatcherを用いてデスクリプタをマッチング
-    const bf = new cv.BFMatcher(cv.NORM_HAMMING, true);
-    const matches = new cv.DMatchVector();
-    bf.match(descriptors1, descriptors2, matches);
-
-    let totalKeypoints = keypoints.size();  // キーポイントの数
-    let matchedKeypoints = matches.size();  // マッチングされたキーポイント数
-    let matchRatio = (matchedKeypoints / totalKeypoints) * 100;  // 一致率の計算
-    // マッチング結果を出力
-    console.log('一致率:', matchRatio.toFixed(2));
-
-    // メモリの解放
-    keypoints1.delete();
-    descriptors1.delete();
-    keypoints2.delete();
-    descriptors2.delete();
-    matches.delete();
-    orb.delete();
-    bf.delete();
-}
 
 
     </script>
