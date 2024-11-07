@@ -56,7 +56,7 @@
                             orb.detectAndCompute(gray, new cv.Mat(), keypoints, descriptors);
             
                             // 特徴点を `img.src` をキーとして格納
-                            this.features[img.src] = { keypoints, descriptors };
+                            this.features[path] = { keypoints, descriptors };
             
                             src.delete();
                             gray.delete();
