@@ -50,7 +50,7 @@
                             const gray = new cv.Mat();
                             cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
             
-                            const orb = new cv.SURF();
+                            const orb = new cv.AKAZE();
                             const keypoints = new cv.KeyPointVector();
                             const descriptors = new cv.Mat();
                             orb.detectAndCompute(gray, new cv.Mat(), keypoints, descriptors);
@@ -102,7 +102,7 @@
                 const gray = new cv.Mat();  // グレースケール画像用
                 cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);  // カラー画像をグレースケールに変換
 
-                const orb = new cv.SURF();  // ORB オブジェクトの作成
+                const orb = new cv.AKAZE();  // ORB オブジェクトの作成
                 const keypoints = new cv.KeyPointVector();  // キーポイント格納用
                 const descriptors = new cv.Mat();  // 特徴量の格納用
                 orb.detectAndCompute(gray, new cv.Mat(), keypoints, descriptors);  // 特徴点と特徴量を抽出
