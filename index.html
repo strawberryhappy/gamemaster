@@ -48,7 +48,7 @@
             
                             const src = cv.imread(this.canvas);
                             const gray = new cv.Mat();
-                            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+                            //cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
             
                             const orb = new cv.ORB();
                             const keypoints = new cv.KeyPointVector();
@@ -100,7 +100,7 @@
 
                 const src = cv.imread(this.canvas);  // canvas から画像データを読み込む
                 const gray = new cv.Mat();  // グレースケール画像用
-                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);  // カラー画像をグレースケールに変換
+                //cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);  // カラー画像をグレースケールに変換
 
                 const orb = new cv.ORB();  // ORB オブジェクトの作成
                 const keypoints = new cv.KeyPointVector();  // キーポイント格納用
