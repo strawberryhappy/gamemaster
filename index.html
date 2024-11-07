@@ -47,8 +47,7 @@
                             ctx.drawImage(img, 0, 0);
             
                             const src = cv.imread(this.canvas);
-                            const gray = new cv.Mat();
-                            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+                            src = this.normalizeImage(src, 0.5);
             
                             const orb = new cv.ORB();
                             const keypoints = new cv.KeyPointVector();
@@ -59,7 +58,6 @@
                             this.features[path] = { keypoints, descriptors };
             
                             src.delete();
-                            gray.delete();
                             orb.delete();
                             keypoints.delete();
                             //descriptors.delete(); ここで開放するとbf.matchができない
@@ -99,13 +97,12 @@
                 ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
 
                 const src = cv.imread(this.canvas);  // canvas から画像データを読み込む
-                const gray = new cv.Mat();  // グレースケール画像用
-                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);  // カラー画像をグレースケールに変換
-
+                src = this.normalizeImage(src, 0.5);
+    
                 const orb = new cv.ORB();  // ORB オブジェクトの作成
                 const keypoints = new cv.KeyPointVector();  // キーポイント格納用
                 const descriptors = new cv.Mat();  // 特徴量の格納用
-                orb.detectAndCompute(gray, new cv.Mat(), keypoints, descriptors);  // 特徴点と特徴量を抽出
+                orb.detectAndCompute(src, new cv.Mat(), keypoints, descriptors);  // 特徴点と特徴量を抽出
 
                 // 画像の特徴点とカメラの特徴点をマッチング
                 for (const path in this.features) {
@@ -130,12 +127,21 @@
 
                 // 必要なくなったオブジェクトの削除
                 src.delete();  // 読み込んだ画像
-                gray.delete();  // グレースケール画像
                 orb.delete();  // ORB オブジェクト
                 keypoints.delete();  // キーポイント
                 descriptors.delete();  // 特徴量
             }
 
+            // 画像を正規化（スケーリング）する関数
+            normalizeImage(src, scaleFactor) {
+                const dst = new cv.Mat();  // 正規化後の画像を格納するMat
+                const size = new cv.Size(src.cols * scaleFactor, src.rows * scaleFactor);  // 新しいサイズを計算
+
+                // 画像を指定したサイズにリサイズ
+                cv.resize(src, dst, size, 0, 0, cv.INTER_LINEAR);  // cv.INTER_LINEARは線形補間を使用
+
+                return dst;  // 正規化後の画像を返す
+            }
         }
     </script>
 </body>
