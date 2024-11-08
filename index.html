@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>モデルの一致率</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.0.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <style>
         #video {
             width: 100%;
@@ -27,8 +27,7 @@
     <script>
         // モデルの読み込み
         async function loadModel() {
-            // model.jsonのパスを修正（適切なパスを設定）
-            const model = await tf.loadLayersModel('json/model.json'); 
+            const model = await tf.loadLayersModel('tfjs_model/model.json'); 
             console.log("モデルが読み込まれました！");
             return model;
         }
@@ -37,7 +36,7 @@
         async function setupCamera() {
             const video = document.getElementById('video');
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { width: 640, height: 480 }
+                video: { width: 290, height: 415 }
             });
             video.srcObject = stream;
             return new Promise((resolve) => {
@@ -46,12 +45,14 @@
         }
 
         // 画像をモデルに合わせて前処理
-        function preprocessFrame(frame) {
-            const tensor = tf.browser.fromPixels(frame)
-                .resizeNearestNeighbor([64, 64]) // モデルに合わせてリサイズ
-                .toFloat()
-                .div(tf.scalar(255)); // 正規化
-            return tensor.expandDims(0); // バッチサイズを追加
+        function preprocessFrame(video) {
+            return tf.tidy(() => {
+                const tensor = tf.browser.fromPixels(video)
+                    .resizeNearestNeighbor([64, 64]) // モデルに合わせてリサイズ
+                    .toFloat()
+                    .div(tf.scalar(255)); // 正規化
+                return tensor.expandDims(0); // バッチサイズを追加
+            });
         }
 
         // メイン処理
@@ -66,14 +67,13 @@
                 "informer", "lovers", "necromancer", "prophet", "twins", "werewolf"
             ];
 
-            // カメラ映像のフレームを定期的に取得して予測
-            const predictFrame = async () => {
-                const frame = tf.browser.fromPixels(video); // カメラフレームを取得
-                const processedFrame = preprocessFrame(frame); // 前処理
+            // フレームの予測処理
+            async function predictFrame() {
+                const processedFrame = preprocessFrame(video); // 前処理
+                const predictions = await model.predict(processedFrame); // モデルで予測
 
-                // モデルで予測
-                const predictions = await model.predict(processedFrame);
                 const predictionArray = predictions.dataSync(); // 結果を取得
+                processedFrame.dispose(); // メモリリークを防ぐために破棄
 
                 // 結果を表示
                 outputDiv.innerHTML = "<h3>一致率:</h3>";
@@ -82,13 +82,10 @@
                     const confidencePercent = (confidence * 100).toFixed(2);
                     outputDiv.innerHTML += `<div>${className}: ${confidencePercent}%</div>`;
                 });
+            }
 
-                // 次のフレームを予測するために再帰的に呼び出し
-                requestAnimationFrame(predictFrame);
-            };
-
-            // 予測の実行
-            predictFrame();
+            // 1秒ごとに予測処理を実行
+            setInterval(predictFrame, 1000);
         }
 
         // ページ読み込み後に実行
