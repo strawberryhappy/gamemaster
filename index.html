@@ -6,6 +6,12 @@
     <title>モデルの一致率</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <style>
+        #video {
+            width: 58px;
+            height: 58px;
+            aspect-ratio: 290 / 415; /* 縦横比を指定 */
+            object-fit: cover; /* 必要に応じて調整 */
+        }
         #output {
             margin-top: 20px;
         }
@@ -32,11 +38,7 @@
         async function setupCamera() {
             const video = document.getElementById('video');
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    width: { ideal: 58 },
-                    height: { ideal: 83 },
-                    aspectRatio: 58 / 83
-                }
+                video: true
             });
             video.srcObject = stream;
             return new Promise((resolve) => {
