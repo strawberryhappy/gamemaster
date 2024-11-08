@@ -28,7 +28,7 @@
         // モデルの読み込み
         async function loadModel() {
             // model.jsonのパスを修正（適切なパスを設定）
-            const model = await tf.loadLayerModel('json/model.json'); 
+            const model = await tf.loadLayersModel('json/model.json'); 
             console.log("モデルが読み込まれました！");
             return model;
         }
