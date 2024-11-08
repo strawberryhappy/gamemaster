@@ -1,143 +1,98 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>特徴点マッチング</title>
-    <script async src="https://docs.opencv.org/4.x/opencv.js" type="text/javascript"></script>
+    <title>モデルの一致率</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <style>
+        #video {
+            width: 100%;
+            max-width: 600px;
+        }
+        #output {
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>カメラ映像と画像の特徴点マッチング</h1>
-    <video id="video" autoplay></video>
-     <canvas id="canvas"></canvas>  
-     <canvas id="canvasOutput"></canvas>  
-    <!-- 結果表示用の要素 -->
-    <div>
-        <div>市民: <span id="citizen">- %</span></div>
-        <div>人狼: <span id="werewolf">- %</span></div>
-    </div>
-    <canvas id="_citizen"></canvas>
-    <canvas id="_werewolf"></canvas>
+    <h1>カメラ映像とモデルの一致率</h1>
+    
+    <!-- カメラ映像 -->
+    <video id="video" autoplay playsinline></video>
+    
+    <!-- 結果表示 -->
+    <div id="output"></div>
 
     <script>
-        class gamemaster {
-            constructor(paths){
-                this.video = document.getElementById("video");
-                this.canvas = document.getElementById("canvas");
-
-                this.intervalID;
-            
-                this.images = [];
-                this.features = {};
-                
-                this.addFeatures(paths || ["citizen.png","werewolf.png"]);
-            }
-
-            addFeatures(imagePaths) {
-                // 画像の読み込みプロミスを格納する配列
-                let loadPromises = imagePaths.map(path => {
-                    return new Promise(resolve => {
-                        this.images.push(path);
-
-                        let img = new Image();
-                        img.src = path;
-            
-                        img.onload = () => {
-                            this.canvas.width = img.width;
-                            this.canvas.height = img.height;
-                            let ctx = this.canvas.getContext("2d");
-                            ctx.drawImage(img, 0, 0);
-            
-                            let src = cv.imread(this.canvas);
-
-                            let orb = new cv.ORB();
-                            let keypoints = new cv.KeyPointVector();
-                            let descriptors = new cv.Mat();
-                            orb.detectAndCompute(src, new cv.Mat(), keypoints, descriptors);
-            
-                            // 特徴点を `img.src` をキーとして格納
-                            this.features[path] = { keypoints, descriptors };
-                            cv.imshow("_" + path.replace(".png",""),src)
-
-                            // src.delete();
-                            // orb.delete();
-                            // keypoints.delete();
-                            //descriptors.delete(); ここで開放するとbf.matchができない
-            
-                            // `resolve` を呼び出してプロミスを完了
-                            resolve();
-                        };
-                    });
-                });
-            
-                // すべての画像の読み込みが完了したら特定のコードを実行
-                Promise.all(loadPromises).then(() => {
-                    console.log("すべての画像の特徴点抽出が完了しました");
-                    navigator.mediaDevices.getUserMedia({
-                        video: {
-                            width: { ideal: 360 },
-                            height: { ideal: 510 },
-                            aspectRatio: 360 / 510
-                        }
-                    }).then(stream => {
-                        this.video.srcObject = stream;
-            
-                        this.video.onloadedmetadata = () => {
-                            this.video.width = this.video.videoWidth;
-                            this.video.height = this.video.videoHeight;
-                            this.intervalID = setInterval(() => this.cameraFeatureComparison(), 1000); // 1秒ごとにマッチングを行う
-                        };
-                    }).catch(err => {
-                        console.error("カメラの起動に失敗しました: " + err);
-                    });
-                });
-            }
-            cameraFeatureComparison() {
-                this.canvas.width = this.video.videoWidth;
-                this.canvas.height = this.video.videoHeight;
-                let ctx = this.canvas.getContext("2d");
-                ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
-
-                let src = cv.imread(this.canvas);  // canvas から画像データを読み込む
-
-                let orb = new cv.ORB();  // ORB オブジェクトの作成
-                let keypoints = new cv.KeyPointVector();  // キーポイント格納用
-                let descriptors = new cv.Mat();  // 特徴量の格納用
-                orb.detectAndCompute(src, new cv.Mat(), keypoints, descriptors);  // 特徴点と特徴量を抽出
-
-                // 画像の特徴点とカメラの特徴点をマッチング
-                for (let path in this.features) {
-                    let feature = this.features[path];
-                    let bf = new cv.BFMatcher(cv.NORM_HAMMING, true);  // マッチャー作成
-                    let matches = new cv.DMatchVector();
-                    
-                    // bf.match を呼び出す前に descriptors の解放をしない
-                    bf.match(descriptors, feature.descriptors, matches);  // マッチング処理
-    
-                    let totalKeypoints = keypoints.size();  // キーポイントの数
-                    let matchedKeypoints = matches.size();  // マッチングされたキーポイント数
-                    let matchRatio = (matchedKeypoints / totalKeypoints) * 100;  // 一致率の計算
-
-                    // 結果を HTML に表示
-                    document.getElementById(path.replace(".png", "")).textContent = `${matchRatio.toFixed(2)}%`;
-
-                    // 使用後にオブジェクトを削除
-                    matches.delete();
-                    bf.delete();
-                }
-
-                // 必要なくなったオブジェクトの削除
-                src.delete();  // 読み込んだ画像
-                orb.delete();  // ORB オブジェクト
-                keypoints.delete();  // キーポイント
-                descriptors.delete();  // 特徴量
-            }
-
+        // モデルの読み込み
+        async function loadModel() {
+            // model.jsonのパスを修正（適切なパスを設定）
+            const model = await tf.loadGraphModel('json/model.json'); 
+            console.log("モデルが読み込まれました！");
+            return model;
         }
 
+        // カメラ映像の取得
+        async function setupCamera() {
+            const video = document.getElementById('video');
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 640, height: 480 }
+            });
+            video.srcObject = stream;
+            return new Promise((resolve) => {
+                video.onloadedmetadata = () => resolve(video);
+            });
+        }
 
+        // 画像をモデルに合わせて前処理
+        function preprocessFrame(frame) {
+            const tensor = tf.browser.fromPixels(frame)
+                .resizeNearestNeighbor([64, 64]) // モデルに合わせてリサイズ
+                .toFloat()
+                .div(tf.scalar(255)); // 正規化
+            return tensor.expandDims(0); // バッチサイズを追加
+        }
+
+        // メイン処理
+        async function run() {
+            const model = await loadModel(); // モデルのロード
+            const video = await setupCamera(); // カメラのセットアップ
+            const outputDiv = document.getElementById('output');
+
+            // 役職リスト
+            const classNames = [
+                "betrayer", "bodyguard", "citizen", "dictator", "fox", "god", "hunter", 
+                "informer", "lovers", "necromancer", "prophet", "twins", "werewolf"
+            ];
+
+            // カメラ映像のフレームを定期的に取得して予測
+            const predictFrame = async () => {
+                const frame = tf.browser.fromPixels(video); // カメラフレームを取得
+                const processedFrame = preprocessFrame(frame); // 前処理
+
+                // モデルで予測
+                const predictions = await model.predict(processedFrame);
+                const predictionArray = predictions.dataSync(); // 結果を取得
+
+                // 結果を表示
+                outputDiv.innerHTML = "<h3>一致率:</h3>";
+                predictionArray.forEach((confidence, index) => {
+                    const className = classNames[index];
+                    const confidencePercent = (confidence * 100).toFixed(2);
+                    outputDiv.innerHTML += `<div>${className}: ${confidencePercent}%</div>`;
+                });
+
+                // 次のフレームを予測するために再帰的に呼び出し
+                requestAnimationFrame(predictFrame);
+            };
+
+            // 予測の実行
+            predictFrame();
+        }
+
+        // ページ読み込み後に実行
+        run();
     </script>
 </body>
 </html>
-
-
